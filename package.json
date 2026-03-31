@@ -1,0 +1,67 @@
+{
+  "name": "ts-env-validator",
+  "version": "0.1.0",
+  "description": "Type-safe environment variable validation with runtime checks and TypeScript inference.",
+  "keywords": [
+    "env",
+    "environment",
+    "validation",
+    "typescript",
+    "config",
+    "runtime"
+  ],
+  "homepage": "https://github.com/daemon-node-byte/ts-env-validator#readme",
+  "bugs": {
+    "url": "https://github.com/daemon-node-byte/ts-env-validator/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/daemon-node-byte/ts-env-validator.git"
+  },
+  "license": "MIT",
+  "author": "Josh Mclain",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.7.2",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vitest": "^3.2.4"
+  }
+}

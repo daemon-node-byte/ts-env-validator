@@ -1,57 +1,32 @@
 # ts-env-validator
 
-Type-safe environment variable validation for Node.js and Next.js.
+Type-safe environment variable validation for Node.js applications.
 
-[![npm version](https://img.shields.io/npm/v/ts-env-validator)](https://www.npmjs.com/package/ts-env-validator)
-[![npm downloads](https://img.shields.io/npm/dm/ts-env-validator)](https://www.npmjs.com/package/ts-env-validator)
-[![license](https://img.shields.io/npm/l/ts-env-validator)](LICENSE)
+`ts-env-validator` validates your environment at runtime, coerces values into useful types, and gives you full TypeScript inference from the same schema.
 
-Validate your environment variables at runtime and get fully inferred TypeScript types — no manual casting, no surprises.
+## Why use it?
 
----
+Environment variables are always strings, but your app usually expects real types:
 
-## ✨ Why this exists
+- numbers like `PORT`
+- booleans like feature flags
+- enums like `NODE_ENV`
+- URLs like `DATABASE_URL`
 
-Environment variables are one of the most common sources of runtime bugs:
+Without validation, bad config leaks into runtime and fails late. `ts-env-validator` fails fast at startup with a single readable error.
 
-- Everything is a **string**
-- Missing values crash apps unpredictably
-- Invalid configs go unnoticed until production
-
-This package solves that by:
-
-- ✅ Validating at startup
-- 🔒 Enforcing correct types
-- ⚡ Failing fast with clear errors
-- 🧠 Inferring types automatically
-
----
-
-## ✨ Features
-
-- ✅ Runtime validation of environment variables
-- 🔒 Fully inferred TypeScript types
-- ⚡ Fail-fast with clear error messages
-- 🧩 Simple, minimal API
-- 🌐 Works with Node.js, Next.js, and serverless environments
-- 🧼 Zero dependencies
-
----
-
-## 📦 Installation
+## Installation
 
 ```bash
 npm install ts-env-validator
-# or
-pnpm add ts-env-validator
-# or
-yarn add ts-env-validator
 ```
 
-## 🚀 Quick Start
+Node.js `>=20` is supported.
 
-```typescript
-import { createEnv, string, number, boolean, enumOf, url } from "ts-env-validator";
+## Quick start
+
+```ts
+import { boolean, createEnv, enumOf, number, string, url } from "ts-env-validator";
 
 export const env = createEnv({
   NODE_ENV: enumOf(["development", "test", "production"]),
@@ -63,97 +38,100 @@ export const env = createEnv({
 });
 ```
 
-### Result
+Inferred result:
 
-```typescript
-env.PORT        // number
-env.ENABLE_CACHE // boolean
-env.LOG_LEVEL   // "debug" | "info" | "warn" | "error" | undefined
+```ts
+env.NODE_ENV;
+// "development" | "test" | "production"
+
+env.PORT;
+// number
+
+env.ENABLE_CACHE;
+// boolean
+
+env.LOG_LEVEL;
+// "debug" | "info" | "warn" | "error" | undefined
 ```
 
-## 🧠 Why use this?
+## API
 
-Environment variables are always strings — but your app expects:
-
-- numbers (PORT)
-- booleans (ENABLE_CACHE)
-- enums (NODE_ENV)
-- URLs (DATABASE_URL)
-
-### Without validation:
-
-- ❌ runtime bugs
-- ❌ invalid configs
-- ❌ hard-to-debug crashes
-
-`ts-env-validator` fixes this by:
-
-- validating at startup
-- coercing types safely
-- giving you full TypeScript inference
-
-## 🔧 API
-
-#### `createEnv(schema, options?)`
+### `createEnv(schema, options?)`
 
 Creates a validated environment object.
 
 ```ts
-const env = createEnv(schema);
-```
-
-#### Options
-
-```ts
-createEnv(schema, {
-  env: customEnvObject
+const env = createEnv(schema, {
+  env: {
+    PORT: "4000",
+  },
 });
 ```
 
-### 🔤 Validators
+If `options.env` is omitted, `createEnv` reads from `process.env`.
+
+### Validators
 
 #### `string()`
+
+Returns the raw string value.
 
 ```ts
 API_KEY: string()
 ```
 
+Empty strings are allowed.
+
 #### `number()`
+
+Parses a string into a number.
 
 ```ts
 PORT: number()
 ```
 
-Automatically parses using parseFloat.
+- Uses `parseFloat`
+- Rejects invalid numeric input
+- Rejects `NaN`, `Infinity`, and empty strings
 
 #### `boolean()`
+
+Parses exact string boolean values.
 
 ```ts
 ENABLE_CACHE: boolean()
 ```
 
-Accepts:
+Accepted values:
 
-- `"true"`, `"false"`
-- `"1"`, `"0"`
+- `"true"`
+- `"false"`
+- `"1"`
+- `"0"`
 
 #### `enumOf([...])`
 
+Validates exact case-sensitive string values.
+
 ```ts
-NODE_ENV: enumOf(["development", "production"])
+NODE_ENV: enumOf(["development", "test", "production"])
 ```
 
 #### `url()`
+
+Validates using the built-in `URL` constructor and returns a normalized string.
 
 ```ts
 DATABASE_URL: url()
 ```
 
-Validates using the built-in URL constructor.
+For example, `"https://example.com"` becomes `"https://example.com/"`.
 
-### 🔁 Modifiers
+### Modifiers
 
 #### `.optional()`
+
+Marks a variable as optional and returns `undefined` when missing.
 
 ```ts
 LOG_LEVEL: enumOf(["debug", "info"]).optional()
@@ -161,129 +139,95 @@ LOG_LEVEL: enumOf(["debug", "info"]).optional()
 
 #### `.default(value)`
 
+Supplies a default when the env key is missing.
+
 ```ts
 PORT: number().default(3000)
 ```
 
+Defaults win over `optional()`, so a defaulted field is always inferred as required.
+
 #### `.describe(text)`
 
+Adds extra context to error messages.
+
 ```ts
-API_KEY: string().describe("API key for external service")
+DATABASE_URL: url().describe("Primary database connection string")
 ```
 
-Used in error messages.
+## Error handling
 
-## ❌ Error Handling
+Validation failures are collected across the whole schema and thrown as one `EnvValidationError`.
 
-If validation fails, an error is thrown at startup:
-
+```txt
 Environment validation failed
 
-```ascii
 Missing required variables:
-- DATABASE_URL
-- JWT_SECRET
+- JWT_SECRET (Token signing secret)
 
 Invalid variables:
-- PORT: expected number, received "abc"
+- PORT (HTTP port): expected number, received "abc"
 - NODE_ENV: expected one of development | production, received "prod"
 ```
 
-## 🧪 Using a Custom Env Object
+The error instance exposes:
+
+- `error.missing`
+- `error.invalid`
+- `error.message`
+
+## Custom env objects
+
+Passing a custom env object is useful in tests, scripts, and edge runtimes:
 
 ```ts
-createEnv(schema, {
-  env: {
-    PORT: "4000"
-  }
-});
+const env = createEnv(
+  {
+    PORT: number().default(3000),
+    ENABLE_CACHE: boolean(),
+  },
+  {
+    env: {
+      ENABLE_CACHE: "true",
+    },
+  },
+);
 ```
 
-## ⚙️ TypeScript Support
+## Examples
 
-Types are automatically inferred:
-
-```ts
-const env = createEnv({
-  PORT: number(),
-});
-
-// env.PORT is number
-```
-
-No casting required.
-
-## 🌐 Works With
-
-- Node.js
-- Express
-- Next.js
-- Vercel / serverless
-- Docker environments
-
-## 🧱 Example (Node.js)
+### Node.js
 
 ```ts
-// env.ts
-import { createEnv, string, number } from "ts-env-validator";
+import { createEnv, number, string, url } from "ts-env-validator";
 
 export const env = createEnv({
   PORT: number().default(3000),
-  DATABASE_URL: string(),
+  DATABASE_URL: url(),
+  JWT_SECRET: string(),
 });
 ```
 
-```ts
-// server.ts
-import { env } from "./env";
-
-app.listen(env.PORT);
-```
-
-## 🧭 Example (Next.js)
+### Next.js
 
 ```ts
-// env.ts
+import { createEnv, string } from "ts-env-validator";
+
 export const env = createEnv({
   NEXT_PUBLIC_API_URL: string(),
 });
 ```
 
+## Development
 
-## 🚧 Roadmap
+```bash
+npm install
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
-### v0.1.0
-
-- Core validators
-- Type inference
-- Error handling
-
-### v0.2.0
-
-- integer()
-- json()
-- array()
-
-### v0.3.0
-
-- custom validators
-- transform/refine hooks
-
-## 🤝 Contributing
-
-Contributions welcome!
-
-Open issues for bugs or feature requests
-Submit PRs for improvements
-
-## 📄 License
+## License
 
 MIT
-
-## ⭐ Support
-
-If you find this useful, consider starring the repo!
-
-## 🧑‍💻 Author
-
-Built by Josh McLain
