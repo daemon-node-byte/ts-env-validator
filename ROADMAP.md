@@ -15,6 +15,7 @@ A lightweight, TypeScript-first environment variable validator that:
 ### v0.1.0 — MVP (Initial Release)
 
 #### Core Features
+
 - `createEnv(schema, options?)`
 - Validators:
   - `string()`
@@ -24,11 +25,13 @@ A lightweight, TypeScript-first environment variable validator that:
   - `url()`
 
 #### Modifiers
+
 - `.optional()`
 - `.default(value)`
 - `.describe(text)`
 
 #### Behavior
+
 - Reads from `process.env`
 - Supports custom env object
 - Coerces types (string → number/boolean/etc.)
@@ -36,6 +39,7 @@ A lightweight, TypeScript-first environment variable validator that:
 - Strong TypeScript inference
 
 #### DX Features
+
 - Clean error formatting
 - Helpful error messages
 - Zero config usage
@@ -44,6 +48,8 @@ A lightweight, TypeScript-first environment variable validator that:
 
 ### v0.2.0 — Extended Types
 
+Completed:
+
 - `integer()`
 - `float()`
 - `json()`
@@ -51,7 +57,7 @@ A lightweight, TypeScript-first environment variable validator that:
 
 ---
 
-### v0.3.0 — Extensibility
+### v0.3.0 — Extensibility (Next)
 
 - Custom validator API
 - `.transform(fn)`

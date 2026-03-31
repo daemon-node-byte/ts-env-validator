@@ -12,6 +12,10 @@ Environment variables are always strings, but your app usually expects real type
 - booleans like feature flags
 - enums like `NODE_ENV`
 - URLs like `DATABASE_URL`
+- integers like retry counts
+- floats like latency thresholds
+- JSON payloads for structured config
+- string lists like host allowlists
 
 Without validation, bad config leaks into runtime and fails late. `ts-env-validator` fails fast at startup with a single readable error.
 
@@ -26,14 +30,29 @@ Node.js `>=20` is supported.
 ## Quick start
 
 ```ts
-import { boolean, createEnv, enumOf, number, string, url } from "ts-env-validator";
+import {
+  array,
+  boolean,
+  createEnv,
+  enumOf,
+  float,
+  integer,
+  json,
+  number,
+  string,
+  url,
+} from "ts-env-validator";
 
 export const env = createEnv({
+  ALLOWED_HOSTS: array(),
   NODE_ENV: enumOf(["development", "test", "production"]),
   PORT: number().default(3000),
   DATABASE_URL: url(),
   JWT_SECRET: string(),
   ENABLE_CACHE: boolean().default(false),
+  MAX_RETRIES: integer().default(3),
+  LATENCY_THRESHOLD: float().default(0.75),
+  FEATURE_FLAGS: json().optional(),
   LOG_LEVEL: enumOf(["debug", "info", "warn", "error"]).optional(),
 });
 ```
@@ -47,8 +66,20 @@ env.NODE_ENV;
 env.PORT;
 // number
 
+env.MAX_RETRIES;
+// number
+
+env.LATENCY_THRESHOLD;
+// number
+
 env.ENABLE_CACHE;
 // boolean
+
+env.ALLOWED_HOSTS;
+// string[]
+
+env.FEATURE_FLAGS;
+// unknown
 
 env.LOG_LEVEL;
 // "debug" | "info" | "warn" | "error" | undefined
@@ -94,6 +125,42 @@ PORT: number()
 - Rejects invalid numeric input
 - Rejects `NaN`, `Infinity`, and empty strings
 
+#### `integer()`
+
+Parses numeric strings whose resulting value is a finite integer.
+
+```ts
+MAX_RETRIES: integer()
+```
+
+Accepted examples:
+
+- `"3"`
+- `"1e3"`
+
+Rejected examples:
+
+- `"3.14"`
+- `"abc"`
+
+#### `float()`
+
+Parses numeric strings intended for fractional or decimal-style values.
+
+```ts
+LATENCY_THRESHOLD: float()
+```
+
+Accepted examples:
+
+- `"3.14"`
+- `"1.5e2"`
+
+Rejected examples:
+
+- `"42"`
+- `"1e3"`
+
 #### `boolean()`
 
 Parses exact string boolean values.
@@ -126,6 +193,30 @@ DATABASE_URL: url()
 ```
 
 For example, `"https://example.com"` becomes `"https://example.com/"`.
+
+#### `json()`
+
+Parses any valid JSON and returns `unknown`.
+
+```ts
+FEATURE_FLAGS: json()
+```
+
+This validator accepts JSON objects, arrays, primitives, and `null`.
+
+#### `array(separator?)`
+
+Splits a string into a trimmed `string[]`.
+
+```ts
+ALLOWED_HOSTS: array()
+SCOPES: array(";")
+```
+
+- Default separator is `","`
+- Each item is trimmed
+- Empty items are rejected
+- Separators are treated literally
 
 ### Modifiers
 
@@ -199,22 +290,37 @@ const env = createEnv(
 ### Node.js
 
 ```ts
-import { createEnv, number, string, url } from "ts-env-validator";
+import {
+  array,
+  createEnv,
+  float,
+  integer,
+  json,
+  number,
+  string,
+  url,
+} from "ts-env-validator";
 
 export const env = createEnv({
+  ALLOWED_HOSTS: array(),
   PORT: number().default(3000),
   DATABASE_URL: url(),
   JWT_SECRET: string(),
+  MAX_RETRIES: integer().default(3),
+  LATENCY_THRESHOLD: float().default(0.75),
+  SERVICE_METADATA: json().optional(),
 });
 ```
 
 ### Next.js
 
 ```ts
-import { createEnv, string } from "ts-env-validator";
+import { array, createEnv, json, string } from "ts-env-validator";
 
 export const env = createEnv({
+  NEXT_PUBLIC_ENABLED_LOCALES: array(),
   NEXT_PUBLIC_API_URL: string(),
+  NEXT_PUBLIC_THEME_CONFIG: json().optional(),
 });
 ```
 
@@ -228,7 +334,7 @@ npm test
 npm run build
 ```
 
-Maintainers: pushing a version tag like `v0.1.0` runs the publish workflow, releasing `ts-env-validator` to npmjs and `@<repository-owner>/ts-env-validator` to GitHub Packages. The published npm tarball includes both `README.md` and `LICENSE`.
+Maintainers: pushing a version tag like `v0.2.0` runs the publish workflow, releasing `ts-env-validator` to npmjs and `@<repository-owner>/ts-env-validator` to GitHub Packages. The published npm tarball includes both `README.md` and `LICENSE`.
 
 ## License
 

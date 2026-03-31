@@ -2,19 +2,19 @@
 
 ## 🧱 Phase 1: Project Setup
 
-- [ ] Initialize project (pnpm or npm)
-- [ ] Create `src/` structure
-- [ ] Setup TypeScript config
-- [ ] Install dependencies:
+- [x] Initialize project (pnpm or npm)
+- [x] Create `src/` structure
+- [x] Setup TypeScript config
+- [x] Install dependencies:
   - typescript
   - tsup
   - vitest
   - eslint
   - prettier
-- [ ] Configure tsup build
-- [ ] Configure Vitest
-- [ ] Configure ESLint + Prettier
-- [ ] Add scripts:
+- [x] Configure tsup build
+- [x] Configure Vitest
+- [x] Configure ESLint + Prettier
+- [x] Add scripts:
   - build
   - dev
   - test
@@ -25,13 +25,13 @@
 
 ## ⚙️ Phase 2: Core Types & Architecture
 
-- [ ] Create base validator type
-- [ ] Define schema type system
-- [ ] Implement fluent modifier chaining:
+- [x] Create base validator type
+- [x] Define schema type system
+- [x] Implement fluent modifier chaining:
   - optional()
   - default()
   - describe()
-- [ ] Define internal parsing contract
+- [x] Define internal parsing contract
 
 ---
 
@@ -39,40 +39,40 @@
 
 ### Primitive Validators
 
-- [ ] Implement `string()`
-- [ ] Implement `number()`
+- [x] Implement `string()`
+- [x] Implement `number()`
   - parseFloat
   - handle NaN
-- [ ] Implement `boolean()`
+- [x] Implement `boolean()`
   - true/false parsing
-- [ ] Implement `enumOf(values)`
-- [ ] Implement `url()`
+- [x] Implement `enumOf(values)`
+- [x] Implement `url()`
 
 ---
 
 ## 🧠 Phase 4: createEnv()
 
-- [ ] Read from `process.env`
-- [ ] Support custom env input
-- [ ] Iterate schema keys
-- [ ] Apply parsing per validator
-- [ ] Handle:
+- [x] Read from `process.env`
+- [x] Support custom env input
+- [x] Iterate schema keys
+- [x] Apply parsing per validator
+- [x] Handle:
   - missing values
   - default values
   - optional values
-- [ ] Collect all errors
-- [ ] Return typed result object
+- [x] Collect all errors
+- [x] Return typed result object
 
 ---
 
 ## ❌ Phase 5: Error Handling
 
-- [ ] Create `EnvValidationError`
-- [ ] Structure error data:
+- [x] Create `EnvValidationError`
+- [x] Structure error data:
   - missing
   - invalid
-- [ ] Build error formatter
-- [ ] Add readable CLI output
+- [x] Build error formatter
+- [x] Add readable CLI output
 - [ ] Add snapshot tests
 
 ---
@@ -80,31 +80,31 @@
 ## 🧪 Phase 6: Testing
 
 ### Unit Tests
-- [ ] string validator
-- [ ] number validator
-- [ ] boolean validator
-- [ ] enum validator
-- [ ] url validator
+- [x] string validator
+- [x] number validator
+- [x] boolean validator
+- [x] enum validator
+- [x] url validator
 
 ### Integration Tests
-- [ ] full schema success case
-- [ ] missing variables
-- [ ] invalid values
-- [ ] mixed errors
-- [ ] default behavior
-- [ ] optional behavior
+- [x] full schema success case
+- [x] missing variables
+- [x] invalid values
+- [x] mixed errors
+- [x] default behavior
+- [x] optional behavior
 
 ---
 
 ## 📚 Phase 7: Documentation
 
-- [ ] Write README:
+- [x] Write README:
   - intro
   - install
   - quick start
   - API reference
   - examples
-- [ ] Add examples:
+- [x] Add examples:
   - Node.js
   - Next.js
 
@@ -112,7 +112,7 @@
 
 ## 🔁 Phase 8: CI/CD
 
-- [ ] Setup GitHub Actions:
+- [x] Setup GitHub Actions:
   - install
   - lint
   - typecheck
@@ -123,34 +123,51 @@
 
 ## 📦 Phase 9: Packaging
 
-- [ ] Configure `package.json`:
+- [x] Configure `package.json`:
   - name
   - version
   - exports
   - types
   - files
-- [ ] Verify:
+- [x] Verify:
   - ESM + CJS output
   - `.d.ts` files generated
-- [ ] Run `npm pack` and inspect output
+- [x] Run `npm pack` and inspect output
 
 ---
 
 ## 🚀 Phase 10: Publish
 
-- [ ] Create GitHub repo
-- [ ] Push code
-- [ ] Tag `v0.1.0`
-- [ ] Publish to npm
-- [ ] Verify install in fresh project
+- [x] Create GitHub repo
+- [x] Push code
+- [x] Tag `v0.1.0`
+- [x] Publish to npm
+- [x] Verify install in fresh project
 
 ---
 
 ## ✅ Definition of Done
 
-- [ ] All tests pass
-- [ ] Lint/typecheck/build pass
-- [ ] README matches real API
-- [ ] Package installs cleanly
-- [ ] Errors are readable
-- [ ] Types are inferred correctly
+- [x] All tests pass
+- [x] Lint/typecheck/build pass
+- [x] README matches real API
+- [x] Package installs cleanly
+- [x] Errors are readable
+- [x] Types are inferred correctly
+
+---
+
+## 🆕 v0.2.0: Extended Types
+
+- [x] Add `integer()`
+- [x] Add `float()`
+- [x] Add `json()`
+- [x] Add `array(separator?)`
+- [x] Reuse existing validator architecture and modifiers
+- [x] Add unit tests for all new validators
+- [x] Add integration coverage for mixed schemas using new validators
+- [x] Add type inference assertions for new validators
+- [x] Update README examples and API reference for extended types
+- [x] Update roadmap for the next milestone
+- [x] Bump package version to `0.2.0`
+- [x] Re-run lint, typecheck, tests, build, and `npm pack --dry-run`

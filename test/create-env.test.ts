@@ -2,9 +2,13 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 
 import {
   EnvValidationError,
+  array,
   boolean,
   createEnv,
   enumOf,
+  float,
+  integer,
+  json,
   number,
   string,
   url,
@@ -14,8 +18,12 @@ describe("createEnv", () => {
   it("creates a typed environment object from a schema", () => {
     const env = createEnv(
       {
+        ALLOWED_HOSTS: array(),
         DATABASE_URL: url(),
         ENABLE_CACHE: boolean().default(false),
+        FEATURE_FLAGS: json().optional(),
+        LATENCY_THRESHOLD: float().default(0.75),
+        MAX_RETRIES: integer().default(3),
         JWT_SECRET: string(),
         LOG_LEVEL: enumOf(["debug", "info", "warn", "error"]).optional(),
         NODE_ENV: enumOf(["development", "test", "production"]),
@@ -23,6 +31,7 @@ describe("createEnv", () => {
       },
       {
         env: {
+          ALLOWED_HOSTS: "api.example.com, cdn.example.com",
           DATABASE_URL: "https://db.example.com",
           JWT_SECRET: "secret",
           NODE_ENV: "production",
@@ -31,16 +40,24 @@ describe("createEnv", () => {
     );
 
     expect(env).toEqual({
+      ALLOWED_HOSTS: ["api.example.com", "cdn.example.com"],
       DATABASE_URL: "https://db.example.com/",
       ENABLE_CACHE: false,
+      FEATURE_FLAGS: undefined,
       JWT_SECRET: "secret",
+      LATENCY_THRESHOLD: 0.75,
       LOG_LEVEL: undefined,
+      MAX_RETRIES: 3,
       NODE_ENV: "production",
       PORT: 3000,
     });
 
     expectTypeOf(env.PORT).toEqualTypeOf<number>();
+    expectTypeOf(env.MAX_RETRIES).toEqualTypeOf<number>();
+    expectTypeOf(env.LATENCY_THRESHOLD).toEqualTypeOf<number>();
     expectTypeOf(env.ENABLE_CACHE).toEqualTypeOf<boolean>();
+    expectTypeOf(env.ALLOWED_HOSTS).toEqualTypeOf<string[]>();
+    expectTypeOf(env.FEATURE_FLAGS).toEqualTypeOf<unknown>();
     expectTypeOf(env.LOG_LEVEL).toEqualTypeOf<
       "debug" | "info" | "warn" | "error" | undefined
     >();
@@ -78,6 +95,35 @@ describe("createEnv", () => {
     );
 
     expect(env.API_KEY).toBe("test-key");
+  });
+
+  it("parses new v0.2.0 validators in mixed schemas", () => {
+    const env = createEnv(
+      {
+        FEATURE_FLAGS: json(),
+        LATENCY_THRESHOLD: float(),
+        MAX_RETRIES: integer(),
+        SCOPES: array(";"),
+      },
+      {
+        env: {
+          FEATURE_FLAGS: '{"beta":true,"limit":2}',
+          LATENCY_THRESHOLD: "1.25",
+          MAX_RETRIES: "5",
+          SCOPES: "read; write;admin",
+        },
+      },
+    );
+
+    expect(env).toEqual({
+      FEATURE_FLAGS: {
+        beta: true,
+        limit: 2,
+      },
+      LATENCY_THRESHOLD: 1.25,
+      MAX_RETRIES: 5,
+      SCOPES: ["read", "write", "admin"],
+    });
   });
 
   it("throws a single formatted error with missing and invalid variables", () => {
@@ -156,6 +202,41 @@ describe("createEnv", () => {
     }
   });
 
+  it("aggregates errors for new validator failures", () => {
+    try {
+      createEnv(
+        {
+          FEATURE_FLAGS: json().describe("Feature flag payload"),
+          LATENCY_THRESHOLD: float().describe("Latency warning threshold"),
+          MAX_RETRIES: integer().describe("Retry budget"),
+          SCOPES: array(";").describe("Allowed scopes"),
+        },
+        {
+          env: {
+            FEATURE_FLAGS: "{",
+            LATENCY_THRESHOLD: "42",
+            MAX_RETRIES: "3.14",
+            SCOPES: "read;;write",
+          },
+        },
+      );
+      throw new Error("Expected createEnv to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(EnvValidationError);
+      expect((error as EnvValidationError).message).toBe(
+        [
+          "Environment validation failed",
+          "",
+          "Invalid variables:",
+          '- FEATURE_FLAGS (Feature flag payload): expected JSON, received "{"',
+          '- LATENCY_THRESHOLD (Latency warning threshold): expected float, received "42"',
+          '- MAX_RETRIES (Retry budget): expected integer, received "3.14"',
+          '- SCOPES (Allowed scopes): expected array, received "read;;write"',
+        ].join("\n"),
+      );
+    }
+  });
+
   it("allows optional values to resolve to undefined", () => {
     const env = createEnv(
       {
@@ -188,13 +269,21 @@ describe("createEnv", () => {
     expect(() =>
       createEnv(
         {
+          FEATURE_FLAGS: json(),
+          HOSTS: array(),
           ENABLE_CACHE: boolean(),
+          LATENCY_THRESHOLD: float(),
+          MAX_RETRIES: integer(),
           PORT: number(),
           SERVICE_URL: url(),
         },
         {
           env: {
             ENABLE_CACHE: "",
+            FEATURE_FLAGS: "",
+            HOSTS: "",
+            LATENCY_THRESHOLD: "",
+            MAX_RETRIES: "",
             PORT: "",
             SERVICE_URL: "",
           },

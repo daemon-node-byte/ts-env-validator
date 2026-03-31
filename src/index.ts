@@ -1,7 +1,11 @@
+export { array } from "./validators/array";
 export { createEnv } from "./create-env";
 export { EnvValidationError } from "./errors";
 export { boolean } from "./validators/boolean";
 export { enumOf } from "./validators/enum";
+export { float } from "./validators/float";
+export { integer } from "./validators/integer";
+export { json } from "./validators/json";
 export { number } from "./validators/number";
 export { string } from "./validators/string";
 export { url } from "./validators/url";

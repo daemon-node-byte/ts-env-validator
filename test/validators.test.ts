@@ -1,6 +1,16 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { boolean, enumOf, number, string, url } from "../src";
+import {
+  array,
+  boolean,
+  enumOf,
+  float,
+  integer,
+  json,
+  number,
+  string,
+  url,
+} from "../src";
 import { EnvValidationError } from "../src/errors";
 
 describe("validators", () => {
@@ -28,6 +38,44 @@ describe("validators", () => {
     });
     expect(number().parse("")).toEqual({
       message: 'expected number, received ""',
+      success: false,
+    });
+  });
+
+  it("parses integers and rejects non-integer values", () => {
+    expect(integer().parse("3000")).toEqual({
+      success: true,
+      value: 3000,
+    });
+    expect(integer().parse("1e3")).toEqual({
+      success: true,
+      value: 1000,
+    });
+    expect(integer().parse("3.14")).toEqual({
+      message: 'expected integer, received "3.14"',
+      success: false,
+    });
+    expect(integer().parse("")).toEqual({
+      message: 'expected integer, received ""',
+      success: false,
+    });
+  });
+
+  it("parses floats and rejects integer results", () => {
+    expect(float().parse("3.14")).toEqual({
+      success: true,
+      value: 3.14,
+    });
+    expect(float().parse("1.5e2")).toEqual({
+      success: true,
+      value: 150,
+    });
+    expect(float().parse("42")).toEqual({
+      message: 'expected float, received "42"',
+      success: false,
+    });
+    expect(float().parse("1e3")).toEqual({
+      message: 'expected float, received "1e3"',
       success: false,
     });
   });
@@ -67,6 +115,43 @@ describe("validators", () => {
     });
     expect(url().parse("")).toEqual({
       message: 'expected URL, received ""',
+      success: false,
+    });
+  });
+
+  it("parses JSON values and returns unknown", () => {
+    expect(json().parse('{"enabled":true,"count":2}')).toEqual({
+      success: true,
+      value: {
+        count: 2,
+        enabled: true,
+      },
+    });
+    expect(json().parse("null")).toEqual({
+      success: true,
+      value: null,
+    });
+    expect(json().parse("{")).toEqual({
+      message: 'expected JSON, received "{"',
+      success: false,
+    });
+  });
+
+  it("parses arrays with trimming and custom separators", () => {
+    expect(array().parse("alpha, beta, gamma")).toEqual({
+      success: true,
+      value: ["alpha", "beta", "gamma"],
+    });
+    expect(array(";").parse("one; two;three")).toEqual({
+      success: true,
+      value: ["one", "two", "three"],
+    });
+    expect(array().parse("alpha,,gamma")).toEqual({
+      message: 'expected array, received "alpha,,gamma"',
+      success: false,
+    });
+    expect(array().parse("")).toEqual({
+      message: 'expected array, received ""',
       success: false,
     });
   });
@@ -119,6 +204,16 @@ describe("validators", () => {
     expectTypeOf(string()).toHaveProperty("parse");
     expectTypeOf(number().default(3000).defaultValue).toEqualTypeOf<
       number | undefined
+    >();
+    expectTypeOf(integer().parse).toBeCallableWith("42");
+    expectTypeOf(float().default(1.5).defaultValue).toEqualTypeOf<
+      number | undefined
+    >();
+    expectTypeOf(array().default(["a"]).defaultValue).toEqualTypeOf<
+      string[] | undefined
+    >();
+    expectTypeOf(json().default({ enabled: true } as unknown).defaultValue).toEqualTypeOf<
+      unknown
     >();
     expectTypeOf(enumOf(["development", "production"])).toMatchTypeOf(
       enumOf(["development", "production"]),
