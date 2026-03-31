@@ -228,6 +228,8 @@ npm test
 npm run build
 ```
 
+Maintainers: pushing a version tag like `v0.1.0` runs the publish workflow, releasing `ts-env-validator` to npmjs and `@<repository-owner>/ts-env-validator` to GitHub Packages. The published npm tarball includes both `README.md` and `LICENSE`.
+
 ## License
 
 MIT
