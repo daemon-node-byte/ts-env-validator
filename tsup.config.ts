@@ -7,5 +7,5 @@ export default defineConfig({
   format: ["esm", "cjs"],
   outDir: "dist",
   sourcemap: true,
-  target: "node20",
+  target: "node18",
 });

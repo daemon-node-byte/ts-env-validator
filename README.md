@@ -25,7 +25,7 @@ Without validation, bad config leaks into runtime and fails late. `ts-env-valida
 npm install ts-env-validator
 ```
 
-Node.js `>=20` is supported.
+Node.js `>=18` is supported.
 
 ## Quick start
 
@@ -52,7 +52,7 @@ export const env = createEnv({
   ENABLE_CACHE: boolean().default(false),
   MAX_RETRIES: integer().default(3),
   LATENCY_THRESHOLD: float().default(0.75),
-  FEATURE_FLAGS: json().optional(),
+  FEATURE_FLAGS: json<{ enabled: boolean; limit: number }>().optional(),
   LOG_LEVEL: enumOf(["debug", "info", "warn", "error"]).optional(),
 });
 ```
@@ -79,7 +79,7 @@ env.ALLOWED_HOSTS;
 // string[]
 
 env.FEATURE_FLAGS;
-// unknown
+// { enabled: boolean; limit: number } | undefined
 
 env.LOG_LEVEL;
 // "debug" | "info" | "warn" | "error" | undefined
@@ -194,15 +194,16 @@ DATABASE_URL: url()
 
 For example, `"https://example.com"` becomes `"https://example.com/"`.
 
-#### `json()`
+#### `json<T>()`
 
-Parses any valid JSON and returns `unknown`.
+Parses any valid JSON and returns the caller-provided type.
 
 ```ts
-FEATURE_FLAGS: json()
+FEATURE_FLAGS: json<{ enabled: boolean; limit: number }>()
 ```
 
 This validator accepts JSON objects, arrays, primitives, and `null`.
+Typing is compile-time only; runtime validation is still plain `JSON.parse`.
 
 #### `array(separator?)`
 
@@ -308,7 +309,7 @@ export const env = createEnv({
   JWT_SECRET: string(),
   MAX_RETRIES: integer().default(3),
   LATENCY_THRESHOLD: float().default(0.75),
-  SERVICE_METADATA: json().optional(),
+  SERVICE_METADATA: json<{ region: string; team: string }>().optional(),
 });
 ```
 
@@ -320,7 +321,7 @@ import { array, createEnv, json, string } from "ts-env-validator";
 export const env = createEnv({
   NEXT_PUBLIC_ENABLED_LOCALES: array(),
   NEXT_PUBLIC_API_URL: string(),
-  NEXT_PUBLIC_THEME_CONFIG: json().optional(),
+  NEXT_PUBLIC_THEME_CONFIG: json<{ accent: string; compact: boolean }>().optional(),
 });
 ```
 

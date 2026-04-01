@@ -16,5 +16,5 @@ export const env = createEnv({
   LATENCY_THRESHOLD: float().default(0.75),
   MAX_RETRIES: integer().default(3),
   PORT: number().default(3000),
-  SERVICE_METADATA: json().optional(),
+  SERVICE_METADATA: json<{ region: string; team: string }>().optional(),
 });

@@ -161,7 +161,7 @@
 
 - [x] Add `integer()`
 - [x] Add `float()`
-- [x] Add `json()`
+- [x] Add `json<T>()`
 - [x] Add `array(separator?)`
 - [x] Reuse existing validator architecture and modifiers
 - [x] Add unit tests for all new validators

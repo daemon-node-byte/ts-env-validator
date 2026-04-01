@@ -1,8 +1,8 @@
 import { createValidator } from "../validator";
 import { formatReceivedValue } from "../utils/format-value";
 
-export function json() {
-  return createValidator<unknown>({
+export function json<T = unknown>() {
+  return createValidator<T>({
     expected: "JSON",
     parse: (input) => {
       if (input === "") {
@@ -15,7 +15,7 @@ export function json() {
       try {
         return {
           success: true,
-          value: JSON.parse(input) as unknown,
+          value: JSON.parse(input) as T,
         };
       } catch {
         return {

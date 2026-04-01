@@ -3,6 +3,7 @@
 ## 🎯 Vision
 
 A lightweight, TypeScript-first environment variable validator that:
+
 - Validates at runtime
 - Infers types at compile time
 - Provides excellent developer experience
@@ -52,7 +53,7 @@ Completed:
 
 - `integer()`
 - `float()`
-- `json()`
+- `json<T>()`
 - `array(separator?)`
 
 ---

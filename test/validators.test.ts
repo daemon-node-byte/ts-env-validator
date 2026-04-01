@@ -119,8 +119,8 @@ describe("validators", () => {
     });
   });
 
-  it("parses JSON values and returns unknown", () => {
-    expect(json().parse('{"enabled":true,"count":2}')).toEqual({
+  it("parses JSON values and supports caller-provided typing", () => {
+    expect(json<{ enabled: boolean; count: number }>().parse('{"enabled":true,"count":2}')).toEqual({
       success: true,
       value: {
         count: 2,
@@ -212,8 +212,10 @@ describe("validators", () => {
     expectTypeOf(array().default(["a"]).defaultValue).toEqualTypeOf<
       string[] | undefined
     >();
-    expectTypeOf(json().default({ enabled: true } as unknown).defaultValue).toEqualTypeOf<
-      unknown
+    expectTypeOf(
+      json<{ enabled: boolean }>().default({ enabled: true }).defaultValue,
+    ).toEqualTypeOf<
+      { enabled: boolean } | undefined
     >();
     expectTypeOf(enumOf(["development", "production"])).toMatchTypeOf(
       enumOf(["development", "production"]),

@@ -21,7 +21,7 @@ describe("createEnv", () => {
         ALLOWED_HOSTS: array(),
         DATABASE_URL: url(),
         ENABLE_CACHE: boolean().default(false),
-        FEATURE_FLAGS: json().optional(),
+        FEATURE_FLAGS: json<{ enabled: boolean; limit: number }>().optional(),
         LATENCY_THRESHOLD: float().default(0.75),
         MAX_RETRIES: integer().default(3),
         JWT_SECRET: string(),
@@ -57,7 +57,9 @@ describe("createEnv", () => {
     expectTypeOf(env.LATENCY_THRESHOLD).toEqualTypeOf<number>();
     expectTypeOf(env.ENABLE_CACHE).toEqualTypeOf<boolean>();
     expectTypeOf(env.ALLOWED_HOSTS).toEqualTypeOf<string[]>();
-    expectTypeOf(env.FEATURE_FLAGS).toEqualTypeOf<unknown>();
+    expectTypeOf(env.FEATURE_FLAGS).toEqualTypeOf<
+      { enabled: boolean; limit: number } | undefined
+    >();
     expectTypeOf(env.LOG_LEVEL).toEqualTypeOf<
       "debug" | "info" | "warn" | "error" | undefined
     >();
@@ -100,7 +102,7 @@ describe("createEnv", () => {
   it("parses new v0.2.0 validators in mixed schemas", () => {
     const env = createEnv(
       {
-        FEATURE_FLAGS: json(),
+        FEATURE_FLAGS: json<{ beta: boolean; limit: number }>(),
         LATENCY_THRESHOLD: float(),
         MAX_RETRIES: integer(),
         SCOPES: array(";"),
