@@ -1,122 +1,96 @@
 # ts-env-validator — Roadmap
 
-## 🎯 Vision
+`ROADMAP.md` is the single source of truth for planned releases.
 
-A lightweight, TypeScript-first environment variable validator that:
+## Vision
 
-- Validates at runtime
-- Infers types at compile time
-- Provides excellent developer experience
-- Works across Node, Next.js, and serverless environments
+Build a lightweight, TypeScript-first environment validator that:
 
----
+- validates at runtime
+- infers types at compile time
+- stays small and framework-agnostic
+- gives helpful startup failures instead of late runtime surprises
 
-## 🚀 Milestones
+## Shipped
 
-### v0.1.0 — MVP (Initial Release)
-
-#### Core Features
+### v0.1.0 — Core MVP
 
 - `createEnv(schema, options?)`
-- Validators:
-  - `string()`
-  - `number()`
-  - `boolean()`
-  - `enumOf([...])`
-  - `url()`
-
-#### Modifiers
-
-- `.optional()`
-- `.default(value)`
-- `.describe(text)`
-
-#### Behavior
-
-- Reads from `process.env`
-- Supports custom env object
-- Coerces types (string → number/boolean/etc.)
-- Collects ALL errors before throwing
-- Strong TypeScript inference
-
-#### DX Features
-
-- Clean error formatting
-- Helpful error messages
-- Zero config usage
-
----
+- validators: `string()`, `number()`, `boolean()`, `enumOf([...])`, `url()`
+- modifiers: `.optional()`, `.default(value)`, `.describe(text)`
+- aggregated error reporting
+- custom env source support
 
 ### v0.2.0 — Extended Types
-
-Completed:
 
 - `integer()`
 - `float()`
 - `json<T>()`
 - `array(separator?)`
 
----
+## Next
 
-### v0.3.0 — Extensibility (Next)
+### v0.3.0 — Extensibility Foundation
 
-- Custom validator API
+Goal: let users create first-class custom validators without expanding the validation model yet.
+
+- public `createValidator({ expected, parse })` API
+- public validator and parser result types
+- custom validators work with `createEnv`
+- custom validators support `.optional()`, `.default()`, and `.describe()`
+- thrown parser errors are normalized into validation failures
+
+Explicitly deferred:
+
 - `.transform(fn)`
 - `.refine(fn)`
+- constraint-style modifiers like `.min()` and `.max()`
 
----
+## Provisional
 
-### v0.4.0 — Ecosystem Enhancements
+### v0.4.0 — Validation Constraints
+
+Potential focus:
+
+- string and number constraints
+- `.transform(fn)`
+- `.refine(fn, message?)`
+- more composable validator pipelines
+
+### v0.5.0 — Tooling
+
+Potential focus:
 
 - dotenv helper
-- `.env.example` validator CLI
-- Next.js helpers (server/client env separation)
+- `.env.example` generation or validation
+- schema-driven docs or CLI support
 
----
+### v0.6.0 — Framework DX
+
+Potential focus:
+
+- Next.js helpers for server and client separation
+- prefix enforcement for client-safe env keys
+- framework-specific docs, not core package coupling
 
 ### v1.0.0 — Stable Release
 
-- Finalized API
-- Performance optimizations
-- Full documentation
-- Community feedback incorporated
+- stable public API
+- polished docs
+- performance review
+- community feedback incorporated
 
----
+## Design Principles
 
-## 🧠 Design Principles
+- minimal API surface
+- strong typing by default
+- readable errors
+- sync, startup-time validation
+- composable internals without overengineering
 
-- Minimal API surface
-- Strong typing by default
-- Fail fast at runtime
-- Clear, readable errors
-- Framework agnostic
-- No unnecessary dependencies
+## Non-Goals
 
----
-
-## ❌ Explicit Non-Goals (v1)
-
-- Nested schemas
-- Async validation
-- Framework-specific wrappers
-- Over-engineered abstractions
-
----
-
-## 📦 Release Strategy
-
-| Version | Focus |
-|--------|------|
-| 0.1.0 | Core functionality |
-| 0.2.0 | More types |
-| 0.3.0 | Extensibility |
-| 1.0.0 | Stability |
-
----
-
-## 📈 Success Metrics
-
-- Easy adoption in new projects
-- Clean TypeScript inference
-- Positive developer feedback
-- GitHub stars / npm downloads
+- nested schemas
+- async validation
+- framework-specific wrappers in the core package
+- broad transform pipelines before the base validator contract is stable

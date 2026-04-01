@@ -219,6 +219,52 @@ SCOPES: array(";")
 - Empty items are rejected
 - Separators are treated literally
 
+### Custom validators
+
+#### `createValidator({ expected, parse })`
+
+Creates a custom validator that works with `createEnv`, type inference, and all existing modifiers.
+
+```ts
+import { createValidator } from "ts-env-validator";
+
+const port = createValidator<number>({
+  expected: "port",
+  parse: (input) => {
+    const value = Number.parseInt(input, 10);
+
+    if (!Number.isInteger(value) || value < 1 || value > 65535) {
+      return {
+        success: false,
+        message: `expected port, received ${JSON.stringify(input)}`,
+      };
+    }
+
+    return {
+      success: true,
+      value,
+    };
+  },
+});
+```
+
+Use it in schemas just like a built-in validator:
+
+```ts
+const env = createEnv({
+  PORT: port.default(3000),
+});
+```
+
+Parser contract:
+
+- `parse` receives the raw string value
+- return `{ success: true, value }` on success
+- return `{ success: false, message }` on failure
+- keep parsers synchronous
+- if `parse` throws an `Error`, its `message` is surfaced as the validation failure
+- if `parse` throws a non-`Error` value, `ts-env-validator` falls back to `expected ${expected}, received ...`
+
 ### Modifiers
 
 #### `.optional()`
@@ -335,7 +381,7 @@ npm test
 npm run build
 ```
 
-Maintainers: pushing a version tag like `v0.2.0` runs the publish workflow, releasing `ts-env-validator` to npmjs and `@<repository-owner>/ts-env-validator` to GitHub Packages. The published npm tarball includes both `README.md` and `LICENSE`.
+Maintainers: pushing a version tag like `v0.3.0` runs the publish workflow, releasing `ts-env-validator` to npmjs and `@<repository-owner>/ts-env-validator` to GitHub Packages. The published npm tarball includes both `README.md` and `LICENSE`.
 
 ## License
 

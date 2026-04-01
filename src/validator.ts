@@ -1,10 +1,28 @@
 import type { Parser, ValidationResult, ValidatorConfig } from "./types";
+import { formatReceivedValue } from "./utils/format-value";
 
-export class EnvValidator<
+export interface Validator<
   T,
   TOptional extends boolean = false,
   THasDefault extends boolean = false,
 > {
+  parse(input: string): ValidationResult<T>;
+  optional(): Validator<T, true, THasDefault>;
+  default(value: T): Validator<T, false, true>;
+  describe(text: string): Validator<T, TOptional, THasDefault>;
+  readonly expected: string;
+  readonly description: string | undefined;
+  readonly hasDefault: boolean;
+  readonly isOptional: boolean;
+  readonly defaultValue: T | undefined;
+}
+
+class EnvValidator<
+  T,
+  TOptional extends boolean = false,
+  THasDefault extends boolean = false,
+> implements Validator<T, TOptional, THasDefault>
+{
   private readonly config: ValidatorConfig<T>;
 
   public constructor(config: ValidatorConfig<T>) {
@@ -15,13 +33,13 @@ export class EnvValidator<
     return this.config.parse(input);
   }
 
-  public optional(): EnvValidator<T, true, THasDefault> {
+  public optional(): Validator<T, true, THasDefault> {
     return this.clone({
       isOptional: true,
     });
   }
 
-  public default(value: T): EnvValidator<T, false, true> {
+  public default(value: T): Validator<T, false, true> {
     return this.clone({
       defaultValue: value,
       hasDefault: true,
@@ -29,7 +47,7 @@ export class EnvValidator<
     });
   }
 
-  public describe(text: string): EnvValidator<T, TOptional, THasDefault> {
+  public describe(text: string): Validator<T, TOptional, THasDefault> {
     return this.clone({
       description: text,
     });
@@ -60,7 +78,7 @@ export class EnvValidator<
     TNextHasDefault extends boolean = THasDefault,
   >(
     overrides: Partial<ValidatorConfig<T>>,
-  ): EnvValidator<T, TNextOptional, TNextHasDefault> {
+  ): Validator<T, TNextOptional, TNextHasDefault> {
     return new EnvValidator<T, TNextOptional, TNextHasDefault>({
       ...this.config,
       ...overrides,
@@ -68,9 +86,9 @@ export class EnvValidator<
   }
 }
 
-export type AnyValidator = EnvValidator<unknown, boolean, boolean>;
+export type AnyValidator = Validator<unknown, boolean, boolean>;
 
-export type InferValidator<TValidator> = TValidator extends EnvValidator<
+export type InferValidator<TValidator> = TValidator extends Validator<
   infer TValue,
   infer TOptional,
   infer THasDefault
@@ -91,11 +109,29 @@ export type InferEnv<TSchema extends EnvSchema> = {
 export function createValidator<T>(config: {
   expected: string;
   parse: Parser<T>;
-}): EnvValidator<T> {
+}): Validator<T> {
+  const parse: Parser<T> = (input) => {
+    try {
+      return config.parse(input);
+    } catch (error) {
+      if (error instanceof Error) {
+        return {
+          message: error.message,
+          success: false,
+        };
+      }
+
+      return {
+        message: `expected ${config.expected}, received ${formatReceivedValue(input)}`,
+        success: false,
+      };
+    }
+  };
+
   return new EnvValidator<T>({
     expected: config.expected,
     hasDefault: false,
     isOptional: false,
-    parse: config.parse,
+    parse,
   });
 }

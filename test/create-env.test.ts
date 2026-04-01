@@ -5,6 +5,7 @@ import {
   array,
   boolean,
   createEnv,
+  createValidator,
   enumOf,
   float,
   integer,
@@ -97,6 +98,48 @@ describe("createEnv", () => {
     );
 
     expect(env.API_KEY).toBe("test-key");
+  });
+
+  it("supports custom validators alongside built-in validators", () => {
+    const port = createValidator<number>({
+      expected: "port",
+      parse: (input) => {
+        const value = Number.parseInt(input, 10);
+
+        if (!Number.isInteger(value) || value < 1 || value > 65535) {
+          return {
+            message: `expected port, received ${JSON.stringify(input)}`,
+            success: false,
+          };
+        }
+
+        return {
+          success: true,
+          value,
+        };
+      },
+    });
+
+    const env = createEnv(
+      {
+        API_URL: url(),
+        LOG_LEVEL: enumOf(["debug", "info"]).optional(),
+        PORT: port.default(3000),
+      },
+      {
+        env: {
+          API_URL: "https://example.com",
+        },
+      },
+    );
+
+    expect(env).toEqual({
+      API_URL: "https://example.com/",
+      LOG_LEVEL: undefined,
+      PORT: 3000,
+    });
+    expectTypeOf(env.PORT).toEqualTypeOf<number>();
+    expectTypeOf(env.LOG_LEVEL).toEqualTypeOf<"debug" | "info" | undefined>();
   });
 
   it("parses new v0.2.0 validators in mixed schemas", () => {
@@ -237,6 +280,73 @@ describe("createEnv", () => {
         ].join("\n"),
       );
     }
+  });
+
+  it("aggregates custom validator failures with missing variables", () => {
+    const port = createValidator<number>({
+      expected: "port",
+      parse: () => {
+        throw new Error("port must be between 1 and 65535");
+      },
+    });
+
+    try {
+      createEnv(
+        {
+          API_KEY: string().describe("Service API key"),
+          PORT: port.describe("Application port"),
+        },
+        {
+          env: {
+            PORT: "70000",
+          },
+        },
+      );
+      throw new Error("Expected createEnv to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(EnvValidationError);
+      expect((error as EnvValidationError).message).toBe(
+        [
+          "Environment validation failed",
+          "",
+          "Missing required variables:",
+          "- API_KEY (Service API key)",
+          "",
+          "Invalid variables:",
+          "- PORT (Application port): port must be between 1 and 65535",
+        ].join("\n"),
+      );
+    }
+  });
+
+  it("infers required, optional, and defaulted custom validator results", () => {
+    const dateString = createValidator<Date>({
+      expected: "date",
+      parse: (input) => ({
+        success: true,
+        value: new Date(input),
+      }),
+    });
+
+    const env = createEnv(
+      {
+        END_DATE: dateString.optional(),
+        RELEASE_DATE: dateString,
+        START_DATE: dateString.default(new Date("2026-01-01T00:00:00.000Z")),
+      },
+      {
+        env: {
+          RELEASE_DATE: "2026-04-01T12:00:00.000Z",
+        },
+      },
+    );
+
+    expect(env.END_DATE).toBeUndefined();
+    expect(env.RELEASE_DATE).toBeInstanceOf(Date);
+    expect(env.START_DATE).toBeInstanceOf(Date);
+    expectTypeOf(env.END_DATE).toEqualTypeOf<Date | undefined>();
+    expectTypeOf(env.RELEASE_DATE).toEqualTypeOf<Date>();
+    expectTypeOf(env.START_DATE).toEqualTypeOf<Date>();
   });
 
   it("allows optional values to resolve to undefined", () => {

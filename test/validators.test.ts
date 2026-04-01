@@ -3,6 +3,7 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import {
   array,
   boolean,
+  createValidator,
   enumOf,
   float,
   integer,
@@ -180,6 +181,90 @@ describe("validators", () => {
     expect(withDefault.defaultValue).toBe(3000);
   });
 
+  it("creates custom validators with typed outputs", () => {
+    const port = createValidator<number>({
+      expected: "port",
+      parse: (input) => {
+        const value = Number.parseInt(input, 10);
+
+        if (!Number.isInteger(value) || value < 1 || value > 65535) {
+          return {
+            message: `expected port, received ${JSON.stringify(input)}`,
+            success: false,
+          };
+        }
+
+        return {
+          success: true,
+          value,
+        };
+      },
+    });
+
+    expect(port.parse("3000")).toEqual({
+      success: true,
+      value: 3000,
+    });
+    expect(port.parse("70000")).toEqual({
+      message: 'expected port, received "70000"',
+      success: false,
+    });
+    expectTypeOf(port.parse).toBeCallableWith("3000");
+    expectTypeOf(port.default(3000).defaultValue).toEqualTypeOf<
+      number | undefined
+    >();
+  });
+
+  it("supports modifier chaining on custom validators", () => {
+    const base = createValidator<number>({
+      expected: "port",
+      parse: (input) => ({
+        success: true,
+        value: Number.parseInt(input, 10),
+      }),
+    });
+    const described = base.describe("Application port");
+    const optional = described.optional();
+    const withDefault = optional.default(3000);
+
+    expect(base.description).toBeUndefined();
+    expect(base.isOptional).toBe(false);
+    expect(base.hasDefault).toBe(false);
+
+    expect(described.description).toBe("Application port");
+    expect(optional.isOptional).toBe(true);
+    expect(withDefault.hasDefault).toBe(true);
+    expect(withDefault.defaultValue).toBe(3000);
+  });
+
+  it("converts thrown parser errors into validation failures", () => {
+    const validator = createValidator<number>({
+      expected: "port",
+      parse: () => {
+        throw new Error("port must be between 1 and 65535");
+      },
+    });
+
+    expect(validator.parse("70000")).toEqual({
+      message: "port must be between 1 and 65535",
+      success: false,
+    });
+  });
+
+  it("uses a fallback error when a parser throws a non-Error value", () => {
+    const validator = createValidator<number>({
+      expected: "port",
+      parse: () => {
+        throw "boom";
+      },
+    });
+
+    expect(validator.parse("70000")).toEqual({
+      message: 'expected port, received "70000"',
+      success: false,
+    });
+  });
+
   it("exposes helpful error metadata", () => {
     const error = new EnvValidationError({
       invalid: [
@@ -217,6 +302,19 @@ describe("validators", () => {
     ).toEqualTypeOf<
       { enabled: boolean } | undefined
     >();
+    expectTypeOf(createValidator<Date>({
+      expected: "date",
+      parse: (input) => ({
+        success: true,
+        value: new Date(input),
+      }),
+    })).toMatchTypeOf(createValidator<Date>({
+      expected: "date",
+      parse: (input) => ({
+        success: true,
+        value: new Date(input),
+      }),
+    }));
     expectTypeOf(enumOf(["development", "production"])).toMatchTypeOf(
       enumOf(["development", "production"]),
     );
