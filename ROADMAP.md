@@ -28,11 +28,7 @@ Build a lightweight, TypeScript-first environment validator that:
 - `json<T>()`
 - `array(separator?)`
 
-## Next
-
-### v0.3.0 — Extensibility Foundation
-
-Goal: let users create first-class custom validators without expanding the validation model yet.
+### v0.3.x — Extensibility Foundation
 
 - public `createValidator({ expected, parse })` API
 - public validator and parser result types
@@ -40,24 +36,46 @@ Goal: let users create first-class custom validators without expanding the valid
 - custom validators support `.optional()`, `.default()`, and `.describe()`
 - thrown parser errors are normalized into validation failures
 
+Shipped across:
+
+- `v0.3.0`
+- `v0.3.1`
+- `v0.3.2`
+
+## Next
+
+### v0.4.0 — Core Constraints
+
+Goal: add first-party validation constraints to built-in validators without expanding into full transform/refine pipelines yet.
+
+- `string().nonempty()`
+- `string().minLength(length)`
+- `string().maxLength(length)`
+- `string().pattern(regex, label?)`
+- `number().min(value)` / `.max(value)`
+- `integer().min(value)` / `.max(value)`
+- `float().min(value)` / `.max(value)`
+- constrained defaults fail immediately when `.default(value)` is invalid
+- immutable modifier chaining preserved across constraints
+- README/examples updated around constrained schemas
+
 Explicitly deferred:
 
 - `.transform(fn)`
 - `.refine(fn)`
-- constraint-style modifiers like `.min()` and `.max()`
+- array/url/enum-specific constraints
 
 ## Provisional
 
-### v0.4.0 — Validation Constraints
+### v0.5.0 — Validation Pipelines
 
 Potential focus:
 
-- string and number constraints
-- `.transform(fn)`
 - `.refine(fn, message?)`
-- more composable validator pipelines
+- carefully scoped `.transform(fn)` exploration
+- more composable validator pipelines once constraint ergonomics settle
 
-### v0.5.0 — Tooling
+### v0.6.0 — Tooling
 
 Potential focus:
 
@@ -65,7 +83,7 @@ Potential focus:
 - `.env.example` generation or validation
 - schema-driven docs or CLI support
 
-### v0.6.0 — Framework DX
+### v0.7.0 — Framework DX
 
 Potential focus:
 
@@ -93,4 +111,4 @@ Potential focus:
 - nested schemas
 - async validation
 - framework-specific wrappers in the core package
-- broad transform pipelines before the base validator contract is stable
+- broad transform pipelines before the constraints layer is proven stable

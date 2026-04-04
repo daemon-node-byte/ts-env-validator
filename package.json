@@ -1,6 +1,6 @@
 {
   "name": "ts-env-validator",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Type-safe environment variable validation with runtime checks and TypeScript inference.",
   "keywords": [
     "env",
