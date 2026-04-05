@@ -46,12 +46,12 @@ import {
 export const env = createEnv({
   ALLOWED_HOSTS: array(),
   NODE_ENV: enumOf(["development", "test", "production"]),
-  PORT: number().default(3000),
+  PORT: number().min(1).max(65535).default(3000),
   DATABASE_URL: url(),
-  JWT_SECRET: string(),
+  JWT_SECRET: string().minLength(32),
   ENABLE_CACHE: boolean().default(false),
-  MAX_RETRIES: integer().default(3),
-  LATENCY_THRESHOLD: float().default(0.75),
+  MAX_RETRIES: integer().min(1).max(10).default(3),
+  LATENCY_THRESHOLD: float().min(0.1).max(2).default(0.75),
   FEATURE_FLAGS: json<{ enabled: boolean; limit: number }>().optional(),
   LOG_LEVEL: enumOf(["debug", "info", "warn", "error"]).optional(),
 });
@@ -108,29 +108,41 @@ If `options.env` is omitted, `createEnv` reads from `process.env`.
 Returns the raw string value.
 
 ```ts
-API_KEY: string()
+API_KEY: string();
 ```
 
 Empty strings are allowed.
+
+Built-in string constraints:
+
+- `.nonempty()`
+- `.minLength(length)`
+- `.maxLength(length)`
+- `.pattern(regex, label?)`
 
 #### `number()`
 
 Parses a string into a number.
 
 ```ts
-PORT: number()
+PORT: number();
 ```
 
 - Uses `parseFloat`
 - Rejects invalid numeric input
 - Rejects `NaN`, `Infinity`, and empty strings
 
+Built-in number constraints:
+
+- `.min(value)`
+- `.max(value)`
+
 #### `integer()`
 
 Parses numeric strings whose resulting value is a finite integer.
 
 ```ts
-MAX_RETRIES: integer()
+MAX_RETRIES: integer();
 ```
 
 Accepted examples:
@@ -143,12 +155,14 @@ Rejected examples:
 - `"3.14"`
 - `"abc"`
 
+Supports `.min(value)` and `.max(value)`.
+
 #### `float()`
 
 Parses numeric strings intended for fractional or decimal-style values.
 
 ```ts
-LATENCY_THRESHOLD: float()
+LATENCY_THRESHOLD: float();
 ```
 
 Accepted examples:
@@ -161,12 +175,14 @@ Rejected examples:
 - `"42"`
 - `"1e3"`
 
+Supports `.min(value)` and `.max(value)`.
+
 #### `boolean()`
 
 Parses exact string boolean values.
 
 ```ts
-ENABLE_CACHE: boolean()
+ENABLE_CACHE: boolean();
 ```
 
 Accepted values:
@@ -181,7 +197,7 @@ Accepted values:
 Validates exact case-sensitive string values.
 
 ```ts
-NODE_ENV: enumOf(["development", "test", "production"])
+NODE_ENV: enumOf(["development", "test", "production"]);
 ```
 
 #### `url()`
@@ -189,7 +205,7 @@ NODE_ENV: enumOf(["development", "test", "production"])
 Validates using the built-in `URL` constructor and returns a normalized string.
 
 ```ts
-DATABASE_URL: url()
+DATABASE_URL: url();
 ```
 
 For example, `"https://example.com"` becomes `"https://example.com/"`.
@@ -199,7 +215,7 @@ For example, `"https://example.com"` becomes `"https://example.com/"`.
 Parses any valid JSON and returns the caller-provided type.
 
 ```ts
-FEATURE_FLAGS: json<{ enabled: boolean; limit: number }>()
+FEATURE_FLAGS: json<{ enabled: boolean; limit: number }>();
 ```
 
 This validator accepts JSON objects, arrays, primitives, and `null`.
@@ -210,8 +226,8 @@ Typing is compile-time only; runtime validation is still plain `JSON.parse`.
 Splits a string into a trimmed `string[]`.
 
 ```ts
-ALLOWED_HOSTS: array()
-SCOPES: array(";")
+ALLOWED_HOSTS: array();
+SCOPES: array(";");
 ```
 
 - Default separator is `","`
@@ -272,7 +288,7 @@ Parser contract:
 Marks a variable as optional and returns `undefined` when missing.
 
 ```ts
-LOG_LEVEL: enumOf(["debug", "info"]).optional()
+LOG_LEVEL: enumOf(["debug", "info"]).optional();
 ```
 
 #### `.default(value)`
@@ -280,7 +296,7 @@ LOG_LEVEL: enumOf(["debug", "info"]).optional()
 Supplies a default when the env key is missing.
 
 ```ts
-PORT: number().default(3000)
+PORT: number().default(3000);
 ```
 
 Defaults win over `optional()`, so a defaulted field is always inferred as required.
@@ -290,8 +306,23 @@ Defaults win over `optional()`, so a defaulted field is always inferred as requi
 Adds extra context to error messages.
 
 ```ts
-DATABASE_URL: url().describe("Primary database connection string")
+DATABASE_URL: url().describe("Primary database connection string");
 ```
+
+### Built-in constraint examples
+
+```ts
+createEnv({
+  PORT: number().min(1).max(65535).default(3000),
+  JWT_SECRET: string().minLength(32),
+  REQUEST_ID: string().pattern(/^[a-f0-9-]+$/i, "UUID pattern"),
+  MAX_RETRIES: integer().min(1).max(10).default(3),
+  LATENCY_THRESHOLD: float().min(0.1).max(2).default(0.75),
+});
+```
+
+Constraint modifiers are immutable and compose with `.optional()`, `.default()`, and `.describe()`.
+Defaults for constrained built-ins are validated immediately, so invalid defaults throw a `TypeError` during schema creation.
 
 ## Error handling
 
@@ -350,11 +381,11 @@ import {
 
 export const env = createEnv({
   ALLOWED_HOSTS: array(),
-  PORT: number().default(3000),
+  PORT: number().min(1).max(65535).default(3000),
   DATABASE_URL: url(),
-  JWT_SECRET: string(),
-  MAX_RETRIES: integer().default(3),
-  LATENCY_THRESHOLD: float().default(0.75),
+  JWT_SECRET: string().minLength(32),
+  MAX_RETRIES: integer().min(1).max(10).default(3),
+  LATENCY_THRESHOLD: float().min(0.1).max(2).default(0.75),
   SERVICE_METADATA: json<{ region: string; team: string }>().optional(),
 });
 ```
@@ -366,8 +397,11 @@ import { array, createEnv, json, string } from "ts-env-validator";
 
 export const env = createEnv({
   NEXT_PUBLIC_ENABLED_LOCALES: array(),
-  NEXT_PUBLIC_API_URL: string(),
-  NEXT_PUBLIC_THEME_CONFIG: json<{ accent: string; compact: boolean }>().optional(),
+  NEXT_PUBLIC_API_URL: string().pattern(/^https?:\/\//, "HTTP URL"),
+  NEXT_PUBLIC_THEME_CONFIG: json<{
+    accent: string;
+    compact: boolean;
+  }>().optional(),
 });
 ```
 
@@ -381,7 +415,7 @@ npm test
 npm run build
 ```
 
-Maintainers: pushing a version tag like `v0.3.0` runs the publish workflow, releasing `ts-env-validator` to npmjs and `@<repository-owner>/ts-env-validator` to GitHub Packages. The published npm tarball includes both `README.md` and `LICENSE`.
+Maintainers: pushing a version tag like `v0.4.0` runs the publish workflow, releasing `ts-env-validator` to npmjs and `@<repository-owner>/ts-env-validator` to GitHub Packages. The published npm tarball includes both `README.md` and `LICENSE`.
 
 ## License
 

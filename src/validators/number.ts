@@ -1,8 +1,8 @@
-import { createValidator } from "../validator";
+import { createNumberValidator } from "../validator";
 import { parseStrictNumber } from "../utils/parse-number";
 
 export function number() {
-  return createValidator<number>({
+  return createNumberValidator({
     expected: "number",
     parse: (input) => parseStrictNumber(input),
   });

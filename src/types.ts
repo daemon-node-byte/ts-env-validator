@@ -19,4 +19,5 @@ export type ValidatorConfig<T> = {
   hasDefault: boolean;
   isOptional: boolean;
   parse: Parser<T>;
+  validateDefault?: (value: T) => string | undefined;
 };

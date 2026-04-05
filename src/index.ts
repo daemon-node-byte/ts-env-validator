@@ -16,4 +16,11 @@ export type {
   ValidationResult,
   ValidationSuccess,
 } from "./types";
-export type { EnvSchema, InferEnv, InferValidator, Validator } from "./validator";
+export type {
+  EnvSchema,
+  InferEnv,
+  InferValidator,
+  NumberValidator,
+  StringValidator,
+  Validator,
+} from "./validator";

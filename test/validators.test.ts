@@ -24,6 +24,42 @@ describe("validators", () => {
     });
   });
 
+  it("applies string constraints with helpful failures", () => {
+    expect(string().nonempty().parse("hello")).toEqual({
+      success: true,
+      value: "hello",
+    });
+    expect(string().nonempty().parse("")).toEqual({
+      message: 'expected string length >= 1, received ""',
+      success: false,
+    });
+    expect(string().minLength(3).maxLength(5).parse("abcd")).toEqual({
+      success: true,
+      value: "abcd",
+    });
+    expect(string().maxLength(3).parse("abcd")).toEqual({
+      message: 'expected string length <= 3, received "abcd"',
+      success: false,
+    });
+  });
+
+  it("supports string pattern constraints and resets regex state", () => {
+    const validator = string().pattern(/^[a-f0-9-]+$/g, "UUID pattern");
+
+    expect(validator.parse("deadbeef-1234")).toEqual({
+      success: true,
+      value: "deadbeef-1234",
+    });
+    expect(validator.parse("deadbeef-1234")).toEqual({
+      success: true,
+      value: "deadbeef-1234",
+    });
+    expect(validator.parse("not-a-uuid!")).toEqual({
+      message: 'expected string matching UUID pattern, received "not-a-uuid!"',
+      success: false,
+    });
+  });
+
   it("parses strict numbers", () => {
     expect(number().parse("3000")).toEqual({
       success: true,
@@ -39,6 +75,21 @@ describe("validators", () => {
     });
     expect(number().parse("")).toEqual({
       message: 'expected number, received ""',
+      success: false,
+    });
+  });
+
+  it("applies numeric min and max constraints", () => {
+    expect(number().min(1).max(10).parse("5")).toEqual({
+      success: true,
+      value: 5,
+    });
+    expect(number().min(1).parse("0")).toEqual({
+      message: 'expected number >= 1, received "0"',
+      success: false,
+    });
+    expect(number().max(10).parse("11")).toEqual({
+      message: 'expected number <= 10, received "11"',
       success: false,
     });
   });
@@ -60,6 +111,10 @@ describe("validators", () => {
       message: 'expected integer, received ""',
       success: false,
     });
+    expect(integer().min(1).max(10).parse("11")).toEqual({
+      message: 'expected integer <= 10, received "11"',
+      success: false,
+    });
   });
 
   it("parses floats and rejects integer results", () => {
@@ -77,6 +132,10 @@ describe("validators", () => {
     });
     expect(float().parse("1e3")).toEqual({
       message: 'expected float, received "1e3"',
+      success: false,
+    });
+    expect(float().min(0.5).max(1.5).parse("0.25")).toEqual({
+      message: 'expected float >= 0.5, received "0.25"',
       success: false,
     });
   });
@@ -121,7 +180,11 @@ describe("validators", () => {
   });
 
   it("parses JSON values and supports caller-provided typing", () => {
-    expect(json<{ enabled: boolean; count: number }>().parse('{"enabled":true,"count":2}')).toEqual({
+    expect(
+      json<{ enabled: boolean; count: number }>().parse(
+        '{"enabled":true,"count":2}',
+      ),
+    ).toEqual({
       success: true,
       value: {
         count: 2,
@@ -158,27 +221,57 @@ describe("validators", () => {
   });
 
   it("supports immutable modifier chaining", () => {
-    const base = number();
-    const described = base.describe("HTTP port");
+    const base = string();
+    const constrained = base.nonempty().minLength(3).maxLength(32);
+    const described = constrained.describe("JWT secret");
     const optional = described.optional();
-    const withDefault = optional.default(3000);
+    const withDefault = optional.default("super-secret-token");
 
     expect(base.description).toBeUndefined();
     expect(base.isOptional).toBe(false);
     expect(base.hasDefault).toBe(false);
+    expect(base.parse("")).toEqual({
+      success: true,
+      value: "",
+    });
 
-    expect(described.description).toBe("HTTP port");
+    expect(constrained.parse("ab")).toEqual({
+      message: 'expected string length >= 3, received "ab"',
+      success: false,
+    });
+    expect(described.description).toBe("JWT secret");
     expect(described.isOptional).toBe(false);
     expect(described.hasDefault).toBe(false);
 
-    expect(optional.description).toBe("HTTP port");
+    expect(optional.description).toBe("JWT secret");
     expect(optional.isOptional).toBe(true);
     expect(optional.hasDefault).toBe(false);
 
-    expect(withDefault.description).toBe("HTTP port");
+    expect(withDefault.description).toBe("JWT secret");
     expect(withDefault.isOptional).toBe(false);
     expect(withDefault.hasDefault).toBe(true);
-    expect(withDefault.defaultValue).toBe(3000);
+    expect(withDefault.defaultValue).toBe("super-secret-token");
+  });
+
+  it("throws when constrained defaults are invalid", () => {
+    expect(() => string().minLength(5).default("nope")).toThrowError(
+      new TypeError('expected string length >= 5, received "nope"'),
+    );
+    expect(() => number().min(1).default(0)).toThrowError(
+      new TypeError("expected number >= 1, received 0"),
+    );
+  });
+
+  it("rejects invalid constraint configuration", () => {
+    expect(() => string().minLength(-1)).toThrowError(
+      new TypeError("minLength length must be a non-negative integer"),
+    );
+    expect(() => string().maxLength(1.5)).toThrowError(
+      new TypeError("maxLength length must be a non-negative integer"),
+    );
+    expect(() => number().min(Number.POSITIVE_INFINITY)).toThrowError(
+      new TypeError("min value must be a finite number"),
+    );
   });
 
   it("creates custom validators with typed outputs", () => {
@@ -287,7 +380,13 @@ describe("validators", () => {
 
   it("infers validator output types", () => {
     expectTypeOf(string()).toHaveProperty("parse");
+    expectTypeOf(
+      string().nonempty().pattern(/abc/).default("abc").defaultValue,
+    ).toEqualTypeOf<string | undefined>();
     expectTypeOf(number().default(3000).defaultValue).toEqualTypeOf<
+      number | undefined
+    >();
+    expectTypeOf(number().min(1).max(10).default(3).defaultValue).toEqualTypeOf<
       number | undefined
     >();
     expectTypeOf(integer().parse).toBeCallableWith("42");
@@ -299,22 +398,24 @@ describe("validators", () => {
     >();
     expectTypeOf(
       json<{ enabled: boolean }>().default({ enabled: true }).defaultValue,
-    ).toEqualTypeOf<
-      { enabled: boolean } | undefined
-    >();
-    expectTypeOf(createValidator<Date>({
-      expected: "date",
-      parse: (input) => ({
-        success: true,
-        value: new Date(input),
+    ).toEqualTypeOf<{ enabled: boolean } | undefined>();
+    expectTypeOf(
+      createValidator<Date>({
+        expected: "date",
+        parse: (input) => ({
+          success: true,
+          value: new Date(input),
+        }),
       }),
-    })).toMatchTypeOf(createValidator<Date>({
-      expected: "date",
-      parse: (input) => ({
-        success: true,
-        value: new Date(input),
+    ).toMatchTypeOf(
+      createValidator<Date>({
+        expected: "date",
+        parse: (input) => ({
+          success: true,
+          value: new Date(input),
+        }),
       }),
-    }));
+    );
     expectTypeOf(enumOf(["development", "production"])).toMatchTypeOf(
       enumOf(["development", "production"]),
     );

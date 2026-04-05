@@ -1,7 +1,7 @@
-import { createValidator } from "../validator";
+import { createStringValidator } from "../validator";
 
 export function string() {
-  return createValidator<string>({
+  return createStringValidator({
     expected: "string",
     parse: (input) => ({
       success: true,

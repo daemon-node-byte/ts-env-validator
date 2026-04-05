@@ -23,18 +23,18 @@ describe("createEnv", () => {
         DATABASE_URL: url(),
         ENABLE_CACHE: boolean().default(false),
         FEATURE_FLAGS: json<{ enabled: boolean; limit: number }>().optional(),
-        LATENCY_THRESHOLD: float().default(0.75),
-        MAX_RETRIES: integer().default(3),
-        JWT_SECRET: string(),
+        LATENCY_THRESHOLD: float().min(0.1).max(2).default(0.75),
+        MAX_RETRIES: integer().min(1).max(10).default(3),
+        JWT_SECRET: string().minLength(32),
         LOG_LEVEL: enumOf(["debug", "info", "warn", "error"]).optional(),
         NODE_ENV: enumOf(["development", "test", "production"]),
-        PORT: number().default(3000),
+        PORT: number().min(1).max(65535).default(3000),
       },
       {
         env: {
           ALLOWED_HOSTS: "api.example.com, cdn.example.com",
           DATABASE_URL: "https://db.example.com",
-          JWT_SECRET: "secret",
+          JWT_SECRET: "super-secret-signing-key-12345678",
           NODE_ENV: "production",
         },
       },
@@ -45,7 +45,7 @@ describe("createEnv", () => {
       DATABASE_URL: "https://db.example.com/",
       ENABLE_CACHE: false,
       FEATURE_FLAGS: undefined,
-      JWT_SECRET: "secret",
+      JWT_SECRET: "super-secret-signing-key-12345678",
       LATENCY_THRESHOLD: 0.75,
       LOG_LEVEL: undefined,
       MAX_RETRIES: 3,
@@ -73,7 +73,7 @@ describe("createEnv", () => {
   it("prefers provided values over defaults", () => {
     const env = createEnv(
       {
-        PORT: number().default(3000),
+        PORT: number().min(1).max(65535).default(3000),
       },
       {
         env: {
@@ -124,7 +124,8 @@ describe("createEnv", () => {
       {
         API_URL: url(),
         LOG_LEVEL: enumOf(["debug", "info"]).optional(),
-        PORT: port.default(3000),
+        PORT: integer().min(1).max(65535).default(3000),
+        SECURE_PORT: port.default(443),
       },
       {
         env: {
@@ -137,8 +138,10 @@ describe("createEnv", () => {
       API_URL: "https://example.com/",
       LOG_LEVEL: undefined,
       PORT: 3000,
+      SECURE_PORT: 443,
     });
     expectTypeOf(env.PORT).toEqualTypeOf<number>();
+    expectTypeOf(env.SECURE_PORT).toEqualTypeOf<number>();
     expectTypeOf(env.LOG_LEVEL).toEqualTypeOf<"debug" | "info" | undefined>();
   });
 
@@ -353,6 +356,7 @@ describe("createEnv", () => {
     const env = createEnv(
       {
         LOG_LEVEL: enumOf(["debug", "info"]).optional(),
+        TOKEN_SUFFIX: string().minLength(4).optional(),
       },
       {
         env: {},
@@ -360,13 +364,15 @@ describe("createEnv", () => {
     );
 
     expect(env.LOG_LEVEL).toBeUndefined();
+    expect(env.TOKEN_SUFFIX).toBeUndefined();
     expectTypeOf(env.LOG_LEVEL).toEqualTypeOf<"debug" | "info" | undefined>();
+    expectTypeOf(env.TOKEN_SUFFIX).toEqualTypeOf<string | undefined>();
   });
 
   it("uses defaults even when optional was chained first", () => {
     const env = createEnv(
       {
-        PORT: number().optional().default(3000),
+        PORT: number().min(1).optional().default(3000),
       },
       {
         env: {},
@@ -402,5 +408,44 @@ describe("createEnv", () => {
         },
       ),
     ).toThrowError(EnvValidationError);
+  });
+
+  it("aggregates constraint failures with missing variables", () => {
+    try {
+      createEnv(
+        {
+          JWT_SECRET: string().minLength(32).describe("Token signing secret"),
+          LATENCY_THRESHOLD: float()
+            .min(0.1)
+            .max(2)
+            .describe("Latency warning threshold"),
+          MAX_RETRIES: integer().min(1).max(5).describe("Retry budget"),
+          PORT: number().min(1).max(65535).describe("HTTP port"),
+        },
+        {
+          env: {
+            JWT_SECRET: "short-secret",
+            LATENCY_THRESHOLD: "2.5",
+            MAX_RETRIES: "0",
+          },
+        },
+      );
+      throw new Error("Expected createEnv to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(EnvValidationError);
+      expect((error as EnvValidationError).message).toBe(
+        [
+          "Environment validation failed",
+          "",
+          "Missing required variables:",
+          "- PORT (HTTP port)",
+          "",
+          "Invalid variables:",
+          '- JWT_SECRET (Token signing secret): expected string length >= 32, received "short-secret"',
+          '- LATENCY_THRESHOLD (Latency warning threshold): expected float <= 2, received "2.5"',
+          '- MAX_RETRIES (Retry budget): expected integer >= 1, received "0"',
+        ].join("\n"),
+      );
+    }
   });
 });
